@@ -16,5 +16,5 @@ for /d %%F in (*) do (
 
     mkdir "%build_dir%\%%F"
 
-    odin build "%%F" %build_type% %compile_flags% -out:"%build_dir%\%%F\%%F.exe"
+    odin build "%%F" %build_type% %compile_flags% -collection:actrune=../actrune -out:"%build_dir%\%%F\%%F.exe"
 )

@@ -19,40 +19,41 @@ ActorState :: union
 }
 
 /*
-	Handler is a function pointer type that defines the message handling behavior of an actor.
+	Behavior is a function pointer type that defines the message handling behavior of an actor.
 	When a message is sent to an actor, this handler is invoked.
 
 	Inputs:
-	- p_from_actor: A pointer to the actor sending the message.
-	- p_to_actor:   A pointer to the actor receiving the message.
-	- message:      The message being passed between actors.
+	- p_actor:  A pointer to the actor receiving the message.
+	- message:  The message being passed to the actor.
 */
-Handler :: proc( p_from_actor: ^Actor, p_to_actor: ^Actor, message: Message )
+Behavior :: proc( p_actor: ^Actor, message: Message )
 
 /*
 	Actor is the core structure representing an actor in the system.
 
 	Fields:
-	- ref:     A unique reference (ActorRef) to this actor.
-	- state:   An ActorState, representing the internal state of the actor.
-	- handler: A Handler procedure that defines how the actor processes incoming messages.
+	- ref:      A unique reference (ActorRef) to this actor.
+	- state:    An ActorState, representing the internal state of the actor.
+	- behavior: A Behavior function that defines how the actor processes incoming messages.
 */
 Actor :: struct
 {
-    ref:     ActorRef,
-    state:   ActorState,
-    handler: Handler
+    ref:      ActorRef,
+    state:    ActorState,
+    behavior: Behavior
 }
 
 /*
-	Sends a message from one actor to another by invoking the handler of the recipient.
+	Sends a message from one actor to another by invoking the recipient's behavior function.
 
 	Inputs:
 	- p_from_actor: A pointer to the actor sending the message.
 	- p_to_actor:   A pointer to the actor receiving the message.
-	- message:      The message being passed between actors.
+	- content:      The content of the message being passed between actors.
+
+	This function wraps the message with the sender's reference and forwards it to the recipient's behavior.
 */
 actor_send_message :: proc( p_from_actor: ^Actor, p_to_actor: ^Actor, message: Message )
 {
-    p_to_actor.handler( p_from_actor, p_to_actor, message )
+    p_to_actor.behavior( p_to_actor, Message{ from = p_from_actor, content = message.content } )
 }

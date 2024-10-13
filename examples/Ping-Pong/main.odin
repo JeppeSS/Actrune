@@ -3,24 +3,24 @@ package main
 import "core:fmt"
 import ar "actrune:actor"
 
-message_handler :: proc( p_from_actor: ^ar.Actor, p_to_actor: ^ar.Actor, message: ar.Message )
+ping_pong_behavior :: proc( p_actor: ^ar.Actor, message: ar.Message )
 {
     if message.content.(string) == "ping"
     {
         fmt.printfln( "Received Ping, sending Pong" )
-        p_to_actor.state = p_to_actor.state.(int) + 1
-        if p_to_actor.state.(int) != 5
+        p_actor.state = p_actor.state.(int) + 1
+        if p_actor.state.(int) != 5
         {
-            ar.actor_send_message( p_to_actor, p_from_actor, ar.Message{ content = "pong" } )
+            ar.actor_send_message( p_actor, message.from, ar.Message{ from = p_actor, content = "pong" } )
         }
     }
     else
     {
         fmt.printfln( "Received Pong, sending Ping" )
-        p_to_actor.state = p_to_actor.state.(int) + 1
-        if p_to_actor.state.(int) != 5
+        p_actor.state = p_actor.state.(int) + 1
+        if p_actor.state.(int) != 5
         {
-            ar.actor_send_message( p_to_actor, p_from_actor, ar.Message{ content = "ping" } )
+            ar.actor_send_message( p_actor, message.from, ar.Message{ content = "ping" } )
         }
     }
 }
@@ -29,12 +29,12 @@ main :: proc()
 {
     ping_actor := ar.Actor{
         ref = 1,
-        handler = message_handler,
+        behavior = ping_pong_behavior,
         state = 0
     };
     pong_actor := ar.Actor{
         ref = 2,
-        handler = message_handler,
+        behavior = ping_pong_behavior,
         state = 0
     };
 

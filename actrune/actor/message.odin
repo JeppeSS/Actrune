@@ -14,15 +14,18 @@ MessageContent :: union
 }
 
 /*
-	Message is a structure representing the message passed between actors.
-	Each message contains both the sender's actor reference and the message content itself.
+	Message is a structure representing the message that actors send to each other.
+	Each message consists of two parts: the actor who sent the message and the content of the message.
+	Messages are used as the primary form of communication between actors and are processed one at a time from an actor's mailbox.
 
 	Fields:
-	- from:    A pointer to the Actor sending the message. This allows the recipient to know who sent the message.
-	- content: The content of the message, represented by the MessageContent union, which can be a string or raw pointer.
+	- from:    An ActorRef representing the actor that sent the message. This allows the receiving actor to know the sender’s identity 
+	           and potentially send a response back, enabling two-way communication.
+	- content: The content of the message, which is stored in a MessageContent union. The content can either be a string or a raw pointer, 
+	           depending on the type of message being passed. This flexibility allows for both simple and complex message structures.
 */
 Message :: struct
 {
-    from:    ^Actor,
+    from:    ActorRef,
     content: MessageContent
 }

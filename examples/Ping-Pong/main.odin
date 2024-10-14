@@ -3,7 +3,7 @@ package main
 import "core:fmt"
 import ar "actrune:actor"
 
-ping_pong_behavior :: proc( p_actor: ^ar.Actor, message: ar.Message )
+ping_pong_behavior :: proc( p_actor_system: ^ar.ActorSystem, p_actor: ^ar.Actor, message: ar.Message )
 {
     if message.content.(string) == "ping"
     {
@@ -11,7 +11,7 @@ ping_pong_behavior :: proc( p_actor: ^ar.Actor, message: ar.Message )
         p_actor.state = p_actor.state.(int) + 1
         if p_actor.state.(int) != 5
         {
-            ar.actor_send_message( p_actor, message.from, ar.Message{ content = "pong" } )
+            ar.actor_system_tell( p_actor_system, p_actor.ref, message.from, "pong" )
         }
     }
     else
@@ -20,34 +20,24 @@ ping_pong_behavior :: proc( p_actor: ^ar.Actor, message: ar.Message )
         p_actor.state = p_actor.state.(int) + 1
         if p_actor.state.(int) != 5
         {
-            ar.actor_send_message( p_actor, message.from, ar.Message{ content = "ping" } )
+            ar.actor_system_tell( p_actor_system, p_actor.ref, message.from, "ping" )
         }
     }
 }
 
 main :: proc()
 {
-    ping_actor := ar.Actor{
-        ref = 1,
-        behavior = ping_pong_behavior,
-        state = 0,
-        mailbox = make( [dynamic]ar.Message )
-    };
-    pong_actor := ar.Actor{
-        ref = 2,
-        behavior = ping_pong_behavior,
-        state = 0,
-        mailbox = make( [dynamic]ar.Message )
-    };
+    p_actor_system := ar.actor_system_create("Ping Pong")
+    defer ar.actor_system_destroy( p_actor_system )
 
-    ar.actor_send_message( &ping_actor, &pong_actor, ar.Message{ content="ping" } );
+
+    ping_actor_ref := ar.actor_system_spawn( p_actor_system, ping_pong_behavior, 0 )
+    pong_actor_ref := ar.actor_system_spawn( p_actor_system, ping_pong_behavior, 0 )
+
+    ar.actor_system_tell( p_actor_system, ping_actor_ref, pong_actor_ref, "ping" )
 
     for i := 0; i < 10; i += 1
     {
-        ar.actor_process_message( &ping_actor )
-        ar.actor_process_message( &pong_actor )
+        ar.actor_system_process_messages( p_actor_system )
     }
-
-    delete( ping_actor.mailbox )
-    delete( pong_actor.mailbox )
 }

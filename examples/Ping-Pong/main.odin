@@ -28,7 +28,7 @@ ping_pong_behavior :: proc( p_actor_system: ^ar.ActorSystem, p_actor: ^ar.Actor,
 main :: proc()
 {
     p_actor_system := ar.actor_system_create("Ping Pong")
-    defer ar.actor_system_destroy( p_actor_system )
+    defer ar.actor_system_terminate( p_actor_system )
 
 
     ping_actor_ref := ar.actor_system_spawn( p_actor_system, ping_pong_behavior, 0 )

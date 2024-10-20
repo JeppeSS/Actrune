@@ -253,19 +253,26 @@ actor_process_messages :: proc( p_actor_system: ^ActorSystem, p_actor: ^Actor )
 
 /*
 	actor_receive_message simulates the act of an actor receiving a message by placing it into its mailbox.
-	It ensures that the actor is in a valid state to receive messages before appending the message.
+	It ensures that the actor is in a valid state (e.g., Running) to receive messages before appending the message.
 
 	Inputs:
 	- p_actor:   A pointer to the actor receiving the message.
-	- from:      The ActorRef of the sender (the actor who is sending the message).
-	- content:   The content of the message being received.
+	- from:      The ActorRef of the sender (the actor who is sending the message). This will be automatically inserted into the message header.
+	- payload:   A Message_Payload structure containing the type and content of the message.
 */
-actor_receive_message :: proc( p_actor: ^Actor, from: ActorRef, content: MessageContent )
+actor_receive_message :: proc( p_actor: ^Actor, from: ActorRef, payload: Message_Payload )
 {
     switch p_actor.life_state
 	{
     case .Running, .Stopping, .Restarting:
-        append(&p_actor.mailbox, Message{ from = from, content = content })
+		message := Message{ 
+			header = {
+				type = payload.type,
+				from = from
+			},
+			content = payload.content	
+		}
+        append(&p_actor.mailbox, message )
         log.debugf( "Actor %d received a message from actor %d.", p_actor.ref, from )
 
     case .Stopped:

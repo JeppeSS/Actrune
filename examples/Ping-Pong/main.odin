@@ -6,13 +6,13 @@ import ar "actrune:actor"
 
 ping_pong_behavior :: proc( p_actor_system: ^ar.ActorSystem, p_actor: ^ar.Actor, message: ar.Message )
 {
-    if message.content.(string) == "ping"
+    if message.header.type == "ping"
     {
         fmt.printfln( "Received Ping, sending Pong" )
         p_actor.state = p_actor.state.(int) + 1
         if p_actor.state.(int) != 5
         {
-            ar.actor_system_tell( p_actor_system, p_actor.ref, message.from, "pong" )
+            ar.actor_system_tell( p_actor_system, p_actor.ref, message.header.from, ar.Message_Payload{ type = "pong" } )
         }
     }
     else
@@ -21,7 +21,7 @@ ping_pong_behavior :: proc( p_actor_system: ^ar.ActorSystem, p_actor: ^ar.Actor,
         p_actor.state = p_actor.state.(int) + 1
         if p_actor.state.(int) != 5
         {
-            ar.actor_system_tell( p_actor_system, p_actor.ref, message.from, "ping" )
+            ar.actor_system_tell( p_actor_system, p_actor.ref, message.header.from, ar.Message_Payload{ type = "ping" } )
         }
     }
 }
@@ -37,7 +37,7 @@ main :: proc()
     ping_actor_ref := ar.actor_system_spawn( p_actor_system, ping_pong_behavior, 0 )
     pong_actor_ref := ar.actor_system_spawn( p_actor_system, ping_pong_behavior, 0 )
 
-    ar.actor_system_tell( p_actor_system, ping_actor_ref, pong_actor_ref, "ping" )
+    ar.actor_system_tell( p_actor_system, ping_actor_ref, pong_actor_ref, ar.Message_Payload{ type = "ping" } )
 
     for i := 0; i < 10; i += 1
     {

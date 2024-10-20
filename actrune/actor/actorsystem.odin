@@ -177,20 +177,21 @@ actor_system_cleanup :: proc( p_actor_system: ^ActorSystem )
 
 /*
 	actor_system_tell sends a message from one actor to another within the ActorSystem.
-	If the destination actor exists, the message is added to its mailbox.
+	If the destination actor exists, the message is added to its mailbox. The `from` field is automatically included
+	in the message header, and the sender only needs to specify the message content and type via the `Message_Payload`.
 
 	Inputs:
 	- p_actor_system: A pointer to the ActorSystem containing the actors.
-	- from:           The ActorRef of the sender, which will be included in the message for the recipient to know the sender.
+	- from:           The ActorRef of the sender. This reference is automatically included in the message header.
 	- to:             The ActorRef of the recipient actor to which the message is being sent.
-	- message:        The content of the message being sent.
+	- payload:        A Message_Payload structure containing the type and content of the message.
 */
-actor_system_tell :: proc( p_actor_system: ^ActorSystem, from: ActorRef, to: ActorRef, message: MessageContent )
+actor_system_tell :: proc( p_actor_system: ^ActorSystem, from: ActorRef, to: ActorRef, payload: Message_Payload )
 {
     p_to_actor, ok := p_actor_system.p_actors[ to ]
     if ok
     {
-        actor_receive_message( p_to_actor, from, message )
+        actor_receive_message( p_to_actor, from, payload )
     }
     else
     {

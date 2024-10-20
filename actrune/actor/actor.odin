@@ -1,6 +1,6 @@
 package actor
 
-import "core:fmt"
+import "core:log"
 
 /*
 	ActorRef is a distinct type that represents a unique reference to an actor.
@@ -80,7 +80,7 @@ Actor :: struct
 */
 actor_init :: proc( ref: ActorRef, behavior: Behavior, state: ActorState ) -> ^Actor
 {
-	fmt.printfln( "Initializing actor %d...", ref )
+	log.debugf( "Initializing actor %d...", ref )
 
     p_actor           := new( Actor )
     p_actor.ref        = ref
@@ -89,7 +89,7 @@ actor_init :: proc( ref: ActorRef, behavior: Behavior, state: ActorState ) -> ^A
     p_actor.state      = state
     p_actor.life_state = .Initialized
 
-	fmt.printfln( "Actor %d is now initialized.", p_actor.ref )
+	log.debugf( "Actor %d is now initialized.", p_actor.ref )
 
 	return p_actor
 }
@@ -112,27 +112,27 @@ actor_start :: proc( p_actor: ^Actor )
 {
 	if p_actor.life_state == .Terminated
 	{
-		fmt.printfln( "Actor %d is terminated, cannot start", p_actor.ref )
+		log.debugf( "Actor %d is terminated, cannot start", p_actor.ref )
 		return
 	}
 
 	if p_actor.life_state == .Stopped
 	{
-		fmt.printfln( "Actor %d is stopped, cannot start directly. Consider restarting.", p_actor.ref )
+		log.debugf( "Actor %d is stopped, cannot start directly. Consider restarting.", p_actor.ref )
 		return
 	}
 
 	if p_actor.life_state == .Running 
 	{
-        fmt.printfln( "Actor %d is already running.", p_actor.ref )
+        log.debugf( "Actor %d is already running.", p_actor.ref )
         return
     }
 
 	if p_actor.life_state == .Initialized || p_actor.life_state == .Restarting
 	{
-		fmt.printfln( "Starting actor %d...", p_actor.ref )
+		log.debugf( "Starting actor %d...", p_actor.ref )
 		p_actor.life_state = .Running
-		fmt.printfln( "Actor %d is now running.", p_actor.ref )
+		log.debugf( "Actor %d is now running.", p_actor.ref )
 	}
 }
 
@@ -148,21 +148,21 @@ actor_graceful_stop :: proc( p_actor: ^Actor )
 {
     if p_actor.life_state == .Terminated 
 	{
-        fmt.printfln( "Actor %d is terminated, cannot stop a terminated actor.", p_actor.ref )
+        log.debugf( "Actor %d is terminated, cannot stop a terminated actor.", p_actor.ref )
         return
     }
 
     if p_actor.life_state == .Stopped
 	{
-        fmt.printfln( "Actor %d is already stopped.", p_actor.ref )
+        log.debugf( "Actor %d is already stopped.", p_actor.ref )
         return
     }
 
     if p_actor.life_state == .Running
 	{
-        fmt.printfln( "Gracefully stopping actor %d...", p_actor.ref )
+        log.debugf( "Gracefully stopping actor %d...", p_actor.ref )
         p_actor.life_state = .Stopping
-        fmt.printfln( "Actor %d is now in stopping state.", p_actor.ref )
+        log.debugf( "Actor %d is now in stopping state.", p_actor.ref )
     }
 }
 
@@ -177,21 +177,21 @@ actor_immediate_stop :: proc( p_actor: ^Actor )
 {
     if p_actor.life_state == .Terminated
 	{
-        fmt.printfln( "Actor %d is terminated, cannot stop a terminated actor.", p_actor.ref )
+        log.debugf( "Actor %d is terminated, cannot stop a terminated actor.", p_actor.ref )
         return
     }
 
     if p_actor.life_state == .Stopped
 	{
-        fmt.printfln( "Actor %d is already stopped.", p_actor.ref )
+        log.debugf( "Actor %d is already stopped.", p_actor.ref )
         return
     }
 
     if p_actor.life_state == .Running || p_actor.life_state == .Stopping
 	{
-        fmt.printfln( "Immediately stopping actor %d...", p_actor.ref )
+        log.debugf( "Immediately stopping actor %d...", p_actor.ref )
         p_actor.life_state = .Stopped
-        fmt.printfln( "Actor %d is now stopped.", p_actor.ref )
+        log.debugf( "Actor %d is now stopped.", p_actor.ref )
     }
 }
 
@@ -206,13 +206,13 @@ actor_restart :: proc( p_actor: ^Actor )
 {
     if p_actor.life_state == .Terminated 
 	{
-        fmt.printfln( "Actor %d is terminated, cannot restart a terminated actor.", p_actor.ref )
+        log.debugf( "Actor %d is terminated, cannot restart a terminated actor.", p_actor.ref )
         return
     }
 
     if p_actor.life_state == .Stopped || p_actor.life_state == .Running
 	{
-        fmt.printfln( "Restarting actor %d...", p_actor.ref )
+        log.debugf( "Restarting actor %d...", p_actor.ref )
         p_actor.life_state = .Restarting
 
 		// TODO[Jeppe]: Find a way to reset the state.
@@ -245,7 +245,7 @@ actor_process_messages :: proc( p_actor_system: ^ActorSystem, p_actor: ^Actor )
 
 		if p_actor.life_state == .Stopping && len(p_actor.mailbox) == 0
 		{
-			fmt.printfln( "Actor %d has no pending messages, now stopped.", p_actor.ref )
+			log.debugf( "Actor %d has no pending messages, now stopped.", p_actor.ref )
 			p_actor.life_state = .Stopped
 		}
 	}
@@ -266,16 +266,16 @@ actor_receive_message :: proc( p_actor: ^Actor, from: ActorRef, content: Message
 	{
     case .Running, .Stopping, .Restarting:
         append(&p_actor.mailbox, Message{ from = from, content = content })
-        fmt.printfln( "Actor %d received a message from actor %d.", p_actor.ref, from )
+        log.debugf( "Actor %d received a message from actor %d.", p_actor.ref, from )
 
     case .Stopped:
-        fmt.printfln( "Actor %d is stopped and cannot receive messages.", p_actor.ref )
+        log.debugf( "Actor %d is stopped and cannot receive messages.", p_actor.ref )
 
     case .Terminated:
-        fmt.printfln( "Actor %d is terminated and cannot receive messages.", p_actor.ref )
+        log.debugf( "Actor %d is terminated and cannot receive messages.", p_actor.ref )
 
     case .Initialized:
-        fmt.printfln( "Actor %d is initialized but not yet running, cannot receive messages.", p_actor.ref )
+        log.debugf( "Actor %d is initialized but not yet running, cannot receive messages.", p_actor.ref )
     }
 }
 
@@ -290,17 +290,17 @@ actor_terminate :: proc( p_actor: ^Actor )
 {
     if p_actor.life_state == .Terminated
 	{
-        fmt.printfln( "Actor %d is already terminated.", p_actor.ref )
+        log.debugf( "Actor %d is already terminated.", p_actor.ref )
         return
     }
 
-    fmt.printfln( "Terminating actor %d...", p_actor.ref )
+    log.debugf( "Terminating actor %d...", p_actor.ref )
     p_actor.life_state = .Terminated
 
     clear( &p_actor.mailbox )
 
     // Log the successful termination
-    fmt.printfln( "Actor %d has been terminated.", p_actor.ref )
+    log.debugf( "Actor %d has been terminated.", p_actor.ref )
 }
 
 

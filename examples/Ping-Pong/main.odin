@@ -1,6 +1,7 @@
 package main
 
 import "core:fmt"
+import "core:log"
 import ar "actrune:actor"
 
 ping_pong_behavior :: proc( p_actor_system: ^ar.ActorSystem, p_actor: ^ar.Actor, message: ar.Message )
@@ -27,6 +28,8 @@ ping_pong_behavior :: proc( p_actor_system: ^ar.ActorSystem, p_actor: ^ar.Actor,
 
 main :: proc()
 {
+    context.logger = log.create_console_logger(opt = log.Options{.Level, .Terminal_Color} | log.Full_Timestamp_Opts)
+
     p_actor_system := ar.actor_system_create("Ping Pong")
     defer ar.actor_system_terminate( p_actor_system )
 

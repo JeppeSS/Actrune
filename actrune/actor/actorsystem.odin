@@ -1,6 +1,6 @@
 package actor
 
-import "core:fmt"
+import "core:log"
 
 /*
 	ActorSystem is a structure that manages a collection of actors in the system.
@@ -74,7 +74,7 @@ actor_system_start_actor :: proc( p_actor_system: ^ActorSystem, ref: ActorRef )
     }
     else
     {
-        fmt.printfln( "Actor %d not found.", ref )
+        log.debugf( "Actor %d not found.", ref )
     }
 }
 
@@ -94,7 +94,7 @@ actor_system_graceful_stop_actor :: proc( p_actor_system: ^ActorSystem, ref: Act
     } 
     else
     {
-        fmt.printfln( "Actor %d not found.", ref )
+        log.debugf( "Actor %d not found.", ref )
     }
 }
 
@@ -114,7 +114,7 @@ actor_system_immediate_stop_actor :: proc( p_actor_system: ^ActorSystem, ref: Ac
     } 
     else 
     {
-        fmt.printfln( "Actor %d not found.", ref )
+        log.debugf( "Actor %d not found.", ref )
     }
 }
 
@@ -134,7 +134,7 @@ actor_system_restart_actor_actor :: proc( p_actor_system: ^ActorSystem, ref: Act
     } 
     else
     {
-        fmt.printfln( "Actor %d not found.", ref )
+        log.debugf( "Actor %d not found.", ref )
     }
 }
 
@@ -194,7 +194,7 @@ actor_system_tell :: proc( p_actor_system: ^ActorSystem, from: ActorRef, to: Act
     }
     else
     {
-        fmt.printfln( "Could not find actor: %d", to ) // TODO[Jeppe]: Handle this case
+        log.debugf( "Could not find actor: %d", to ) // TODO[Jeppe]: Handle this case
     }
 }
 
@@ -216,7 +216,7 @@ actor_system_terminate_actor :: proc( p_actor_system: ^ActorSystem, ref: ActorRe
     } 
     else
     {
-        fmt.printfln( "Actor %d not found.", ref )
+        log.debugf( "Actor %d not found.", ref )
     }
 }
 

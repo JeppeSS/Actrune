@@ -15,6 +15,12 @@ Join_Message :: struct
     username: string
 }
 
+
+Leave_Message :: struct
+{
+    username: string
+}
+
 Chat_Message :: struct
 {
     from:    string,
@@ -32,15 +38,33 @@ room_behavior :: proc( p_actor_system: ^ar.ActorSystem, p_room_actor: ^ar.Actor,
         join_message := cast(^Join_Message)message.content.(rawptr)
         fmt.printfln("USER %s joined", join_message.username)
 
-        // Broadcast
-        for _, ref in state.users
-        {
-            p_chat_message := new( Chat_Message )
-            p_chat_message.from = "SYSTEM"
-            p_chat_message.message = fmt.aprintf("User %s joined", join_message.username)
-            ar.actor_system_tell( p_actor_system, p_room_actor.ref, ref, ar.Message_Payload{ type = "Chat_Message", content = rawptr( p_chat_message ) } )
-        }
+        broadcast_message := fmt.aprintf("User %s joined", join_message.username)
+        broadcast( p_actor_system, p_room_actor, broadcast_message )
+
         state.users[ join_message.username ] = message.header.from
+    }
+    else if message.header.type == "Leave_Message"
+    {
+        leave_message := cast(^Leave_Message)message.content.(rawptr)
+        fmt.printfln("USER %s leaved", leave_message.username)
+
+        delete_key( &state.users, leave_message.username )
+
+        broadcast_message := fmt.aprintf("User %s leaved", leave_message.username)
+        broadcast( p_actor_system, p_room_actor, broadcast_message )
+    }
+}
+
+
+broadcast :: proc( p_actor_system: ^ar.ActorSystem, p_room_actor: ^ar.Actor, message: string)
+{
+    state := cast(^Room_State)p_room_actor.state.(rawptr)
+    for _, ref in state.users
+    {
+        p_chat_message := new( Chat_Message )
+        p_chat_message.from = "SYSTEM"
+        p_chat_message.message = message
+        ar.actor_system_tell( p_actor_system, p_room_actor.ref, ref, ar.Message_Payload{ type = "Chat_Message", content = rawptr( p_chat_message ) } )
     }
 }
 
@@ -83,7 +107,6 @@ main :: proc()
     defer room_state_destroy( p_room_state )
 
     room_ref := ar.actor_system_spawn( p_actor_system, room_behavior,  rawptr( p_room_state )  )
-
     user_ref := ar.actor_system_spawn( p_actor_system, user_behavior, nil )
 
     {
@@ -95,10 +118,20 @@ main :: proc()
     {
         ar.actor_system_process_messages( p_actor_system )
 
-        if i == 5
+        if i == 3
         {
             join_message := Join_Message{ username = "abc" }
             ar.actor_system_tell( p_actor_system, user_ref, room_ref, ar.Message_Payload{ type = "Join_Message", content = rawptr( &join_message ) } )
         }
+
+
+        if i == 5
+        {
+            leave_message := Leave_Message{ username = "test" }
+            ar.actor_system_tell( p_actor_system, user_ref, room_ref, ar.Message_Payload{ type = "Leave_Message", content = rawptr( &leave_message ) } )
+        }
+
+
+
     }
 }

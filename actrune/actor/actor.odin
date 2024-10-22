@@ -46,23 +46,39 @@ ActorLifeState :: enum u8
 Behavior :: proc( p_actor_system: ^ActorSystem, p_actor: ^Actor, message: Message )
 
 /*
+	State_Reset_Proc is a function pointer type used to reset an actor's state during a restart.
+	It is invoked when the actor is being restarted and allows the state to be reset based on custom logic.
+
+	Inputs:
+	- p_actor:   A pointer to the actor whose state is being reset.
+	- p_data:    Optional user-defined data passed to the reset function.
+*/
+State_Reset_Proc :: proc( p_actor: ^Actor, p_data: rawptr )
+
+/*
 	Actor is the core structure representing an actor in the system.
-	Each actor has its own state, behavior, and mailbox for processing messages.
+	Each actor has its own state, behavior, mailbox for processing messages, and optional references to a supervisor and reset function.
 
 	Fields:
-	- ref:      A unique reference (ActorRef) to this actor.
-	- state:    An ActorState, representing the internal state of the actor.
-	- behavior: A Behavior function that defines how the actor processes incoming messages.
-	- mailbox:  A dynamic array of Message structs, representing the actor's incoming message queue.
-	- life_state: An ActorLifeState enum value that represents the current lifecycle state of the actor, such as Running, Stopping, or Terminated.
+	- ref:               A unique reference (ActorRef) to this actor.
+	- state:             An ActorState, representing the internal state of the actor.
+	- behavior:          A Behavior function that defines how the actor processes incoming messages.
+	- mailbox:           A dynamic array of Message structs, representing the actor's incoming message queue.
+	- life_state:        An ActorLifeState enum value that represents the current lifecycle state of the actor.
+	- state_reset_proc:  A function pointer for resetting the actor's state when the actor is restarted.
+	- p_reset_user_data: Optional user data that is passed to the state reset function during a restart.
+	- supervisor_ref:    A reference to the actor's supervisor, if any.
 */
 Actor :: struct
 {
-    ref:        ActorRef,
-    state:      ActorState,
-    behavior:   Behavior,
-	mailbox:    [dynamic]Message,
-	life_state: ActorLifeState
+    ref:               ActorRef,
+    state:             ActorState,
+    behavior:          Behavior,
+	mailbox:           [dynamic]Message,
+	life_state:        ActorLifeState,
+	state_reset_proc:  State_Reset_Proc,
+	p_reset_user_data: rawptr,
+	supervisor_ref:    Maybe(ActorRef)
 }
 
 /*
@@ -71,27 +87,47 @@ Actor :: struct
 	This function is typically called during actor creation to set up all the necessary properties before the actor can start running.
 
 	Inputs:
-	- ref:      An ActorRef representing the unique reference for this actor. This reference is used to identify the actor in the system.
-	- behavior: A Behavior function that defines how the actor processes incoming messages. This function will be called whenever the actor receives a message.
-	- state:    The initial state of the actor, represented as an ActorState.
+	- ref:           An ActorRef representing the unique reference for this actor.
+	- behavior:      A Behavior function that defines how the actor processes incoming messages.
+	- state:         The initial state of the actor, represented as an ActorState.
+	- supervisor_ref: (Optional) A reference to the actor's supervisor.
 
 	Returns:
 	- A pointer to the newly created and initialized Actor.
 */
-actor_init :: proc( ref: ActorRef, behavior: Behavior, state: ActorState ) -> ^Actor
+actor_init :: proc( ref: ActorRef, behavior: Behavior, state: ActorState,  supervisor_ref: Maybe(ActorRef) ) -> ^Actor
 {
 	log.debugf( "Initializing actor %d...", ref )
 
-    p_actor           := new( Actor )
-    p_actor.ref        = ref
-    p_actor.mailbox    = make( [dynamic]Message )
-    p_actor.behavior   = behavior
-    p_actor.state      = state
-    p_actor.life_state = .Initialized
+    p_actor                  := new( Actor )
+    p_actor.ref               = ref
+    p_actor.mailbox           = make( [dynamic]Message )
+    p_actor.behavior          = behavior
+    p_actor.state             = state
+	p_actor.supervisor_ref    = supervisor_ref
+    p_actor.life_state        = .Initialized
+	p_actor.state_reset_proc  = nil
+	p_actor.p_reset_user_data = nil
 
 	log.debugf( "Actor %d is now initialized.", p_actor.ref )
 
 	return p_actor
+}
+
+/*
+	actor_register_state_reset_proc registers a state reset function for an actor.
+	This function will be invoked during an actor restart to reset the actor's state.
+	The user can also provide custom user data, which will be passed to the reset function during the restart.
+
+	Inputs:
+	- p_actor:          A pointer to the actor for which the state reset function is being registered.
+	- state_reset_proc: The function pointer that defines how the actor's state will be reset during a restart.
+	- p_user_data:      (Optional) Custom user data that will be passed to the reset function.
+*/
+actor_register_state_reset_proc :: proc( p_actor: ^Actor, state_reset_proc: State_Reset_Proc, p_user_data: rawptr )
+{
+	p_actor.state_reset_proc  = state_reset_proc
+	p_actor.p_reset_user_data = p_user_data
 }
 
 /*
@@ -215,8 +251,10 @@ actor_restart :: proc( p_actor: ^Actor )
         log.debugf( "Restarting actor %d...", p_actor.ref )
         p_actor.life_state = .Restarting
 
-		// TODO[Jeppe]: Find a way to reset the state.
-        //p_actor.state = 
+		if p_actor.state_reset_proc != nil
+		{
+			p_actor.state_reset_proc( p_actor, p_actor.p_reset_user_data )
+		}
 
         actor_start( p_actor )
     }

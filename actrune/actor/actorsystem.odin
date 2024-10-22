@@ -42,18 +42,19 @@ actor_system_create :: proc( name: string ) -> ^ActorSystem
 	Inputs:
 	- p_actor_system: A pointer to the ActorSystem in which the actor is to be created.
 	- behavior:       The behavior function that defines how the actor processes messages.
-	- state:          The initial state of the actor..
+	- state:          The initial state of the actor.
+	- supervisor_ref: (Optional) A reference to the actor's supervisor, if any.
 
 	Returns:
 	- ActorRef: A unique reference to the newly created actor, which can be used to send messages to it.
 */
-actor_system_spawn :: proc( p_actor_system: ^ActorSystem, behavior: Behavior, state: ActorState ) -> ActorRef
+actor_system_spawn :: proc( p_actor_system: ^ActorSystem, behavior: Behavior, state: ActorState, supervisor_ref: Maybe(ActorRef) = nil  ) -> ActorRef
 {
     ref     := ActorRef( len( p_actor_system.p_actors ) )
-    p_actor := actor_init( ref, behavior, state )
+    p_actor := actor_init( ref, behavior, state, supervisor_ref )
     p_actor_system.p_actors[ p_actor.ref ] = p_actor
 
-    actor_start(p_actor)
+    actor_start( p_actor )
 
     return p_actor.ref
 }
@@ -215,6 +216,29 @@ actor_system_terminate_actor :: proc( p_actor_system: ^ActorSystem, ref: ActorRe
         actor_terminate( p_actor )
         delete_key( &p_actor_system.p_actors, ref )
     } 
+    else
+    {
+        log.debugf( "Actor %d not found.", ref )
+    }
+}
+
+/*
+	actor_system_register_state_reset_proc registers a state reset function and optional user data for an actor.
+	This allows the user to define how the actor’s state should be reset when the actor is restarted.
+
+	Inputs:
+	- p_actor_system: A pointer to the ActorSystem managing the actors.
+	- ref:            The ActorRef of the actor.
+	- reset_proc:     The function that defines how the actor's state is reset.
+	- p_user_data:    Optional user data passed to the reset function (default is nil).
+*/
+actor_system_register_state_reset_proc :: proc(  p_actor_system: ^ActorSystem, ref: ActorRef, reset_proc: State_Reset_Proc, p_user_data: rawptr = nil )
+{
+    p_actor, ok := p_actor_system.p_actors[ ref ]
+    if ok
+    {
+        actor_register_state_reset_proc( p_actor, reset_proc, p_user_data )
+    }
     else
     {
         log.debugf( "Actor %d not found.", ref )
